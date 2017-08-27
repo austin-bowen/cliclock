@@ -33,9 +33,9 @@ __author__   = 'Austin Bowen <austin.bowen.314@gmail.com>'
 
 import time
 
-from blessings import Terminal
-from datetime  import datetime
-from math      import floor
+from blessed  import Terminal
+from datetime import datetime
+from math     import floor
 
 FULL_BLOCK_CHAR = '\u2588'
 
@@ -65,7 +65,7 @@ NUMBER_SEGMENTS = {
 def cliclock(fg=FULL_BLOCK_CHAR, bg=' '):
     term = Terminal()
     
-    with term.fullscreen(), term.hidden_cursor(), term.location(0, 0):
+    with term.fullscreen(), term.hidden_cursor(), term.cbreak():
         try:
             while True:
                 dt = datetime.now()
