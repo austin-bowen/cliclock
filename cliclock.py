@@ -76,6 +76,8 @@ def cliclock(fg=FULL_BLOCK_CHAR, bg=' '):
 
 def print_datetime(term, dt, fg=FULL_BLOCK_CHAR, bg=' '):
     print(term.clear)
+    with term.location(0, term.height-1):
+        print('Press Ctrl-C to quit')
     
     hour   = '%.2d' %(dt.hour % 12)
     minute = '%.2d' %dt.minute
