@@ -49,9 +49,10 @@ setup(
         'Development Status :: 4 - Beta',
         
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
+        'Environment :: Console',
+        'Intended Audience :: End Users/Desktop',
         'Intended Audience :: System Administrators',
-        'Topic :: Software Development',
+        'Topic :: Games/Entertainment',
         'Topic :: Utilities',
         
         # Pick your license as you wish (should match "license" above)
@@ -67,7 +68,7 @@ setup(
     ],
     
     # What does your project relate to?
-    keywords='minecraft server management',
+    keywords='cli clock terminal time',
     
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -80,8 +81,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['packaging', 'progress', 'requests', 'six',
-        'terminaltables'],
+    install_requires=['packaging', 'blessings'],
     
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
