@@ -35,7 +35,7 @@ import time
 
 from blessed  import Terminal
 from datetime import datetime
-from math     import floor
+from math     import ceil, floor
 
 FULL_BLOCK_CHAR = '\u2588'
 
@@ -74,6 +74,23 @@ def cliclock(fg=FULL_BLOCK_CHAR, bg=' '):
         except KeyboardInterrupt:
             pass
 
+def print_colon(term, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
+    x, y = origin
+    w, h = size
+    if (fg == None): fg = FULL_BLOCK_CHAR
+    
+    top_dot_top = floor(h/5)
+    top_dot_bot = floor(2*h/5)
+    bot_dot_top = ceil(3*h/5)
+    bot_dot_bot = ceil(4*h/5)
+    
+    for line in range(h):
+        with term.location(x, y+line):
+            if   (line >= top_dot_top and line < top_dot_bot): s = fg*w
+            elif (line >= bot_dot_top and line < bot_dot_bot): s = fg*w
+            else: s = bg*w
+            print(s, end='', flush=True)
+
 def print_datetime(term, dt, fg=FULL_BLOCK_CHAR, bg=' '):
     print(term.clear)
     with term.location(0, term.height-1):
@@ -83,50 +100,69 @@ def print_datetime(term, dt, fg=FULL_BLOCK_CHAR, bg=' '):
     minute = '%.2d' %dt.minute
     second = '%.2d' %dt.second
     
-    # Number width calculation:
-    # fw = 6nw + 3ns + 5gs
-    # ns = nsr*nw
-    # gs = gsr*nw
-    # ==> fw = 6nw + 3*nsr*nw + 4*gsr*nw
-    #        = nw * (6 + 3nsr + 4gsr)
-    # ==> nw = fw / (6 + 3nsr + 4gsr)
+    # Time Height Calculation:
+    # tw = 6nw + 2cw + 7sw + 2bw.
+    # h  = nw-1 ==> nw = h+1.
+    # cw = h*2/5.
+    # sw = swr*nw = swr*(h+1).
+    # bw = bwr*nw = bwr*(h+1).
+    # ==> tw = 6(h+1) + h*4/5 + 7*swr*(h+1) + 2*bwr*(h+1)
+    #        = 6h + 6 + h*4/5 + 7*swr*h + 7*swr + 2*bwr*h + 2*bwr
+    #        = (6 + 4/5 + 7*swr + 2*bwr)*h + 6 + 7swr + 2bwr
+    # ==> h  = (tw - 2bwr - 7swr - 6) / (2bwr + 7swr + 6.8).
     
-    # Determine the number width (ratios are WRT number width)
-    number_sep_ratio = .3
-    group_sep_ratio  = .5
-    number_width     = term.width / (6 + 3*number_sep_ratio + 4*group_sep_ratio)
-    number_width     = floor(number_width)
+    # Determine the height of the time
+    border_width_ratio = 0.5    # WRT number width; can be changed.
+    sep_width_ratio    = 0.3    # WRT number width; can be changed.
+    h  = (term.width - 2*border_width_ratio - 7*sep_width_ratio - 6)
+    h /= (2*border_width_ratio + 7*sep_width_ratio + 6.8)
+    h  = floor(h)
     
-    number_height = number_width-1
-    number_sep    = floor(number_width*number_sep_ratio)
-    group_sep     = floor(number_width*group_sep_ratio)
-    full_width    = 6*number_width + 3*number_sep + 4*group_sep
-    x = round((term.width-1-full_width)/2) + group_sep
-    y = floor((term.height-1-number_height)/2)
+    # Determine widths
+    number_width = h+1
+    colon_width  = floor(h*2/5)
+    sep_width    = floor(sep_width_ratio*number_width)
+    border_width = floor(border_width_ratio*number_width)
+    time_width   = 6*number_width + 2*colon_width + 7*sep_width + 2*border_width
+    
+    # Determine starting origin
+    x = round((term.width-1-time_width)/2) + border_width
+    y = floor((term.height-1-h)/2)
     
     # Print hour group
-    if (hour[0] != '0') or True:
-        print_number(term, hour[0], (x, y), (number_width, number_height), fg, bg)
-    x += number_width+number_sep
-    print_number(term, hour[1], (x, y), (number_width, number_height), fg, bg)
+    print_number(term, hour[0], (x, y), (number_width, h), fg, bg)
+    x += number_width+sep_width
+    print_number(term, hour[1], (x, y), (number_width, h), fg, bg)
+    x += number_width
+    
+    # Print colon
+    x += sep_width
+    print_colon(term, (x, y), (colon_width, h), fg, bg)
+    x += colon_width
     
     # Print minute group
-    x += number_width+group_sep
-    print_number(term, minute[0], (x, y), (number_width, number_height), fg, bg)
-    x += number_width+number_sep
-    print_number(term, minute[1], (x, y), (number_width, number_height), fg, bg)
+    x += sep_width
+    print_number(term, minute[0], (x, y), (number_width, h), fg, bg)
+    x += number_width+sep_width
+    print_number(term, minute[1], (x, y), (number_width, h), fg, bg)
+    x += number_width
+    
+    # Print colon
+    x += sep_width
+    print_colon(term, (x, y), (colon_width, h), fg, bg)
+    x += colon_width
     
     # Print second group
-    x += number_width+group_sep
-    print_number(term, second[0], (x, y), (number_width, number_height), fg, bg)
-    x += number_width+number_sep
-    print_number(term, second[1], (x, y), (number_width, number_height), fg, bg)
+    x += sep_width
+    print_number(term, second[0], (x, y), (number_width, h), fg, bg)
+    x += number_width+sep_width
+    print_number(term, second[1], (x, y), (number_width, h), fg, bg)
     
     # Print date
     d = dt.date()
     d = d.strftime('%A, %B %d, %Y')
     x = round((term.width-1-len(d))/2)
-    y = y + number_height + 1
+    y = y + h + 1
     with term.location(x, y):
         print(term.bold + d)
 
