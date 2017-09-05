@@ -62,14 +62,14 @@ NUMBER_SEGMENTS = {
     9: {0, 1, 2, 3, 5},
 }
 
-def cliclock(fg=FULL_BLOCK_CHAR, bg=' '):
+def cliclock(twelve_hour_format=False, fg=FULL_BLOCK_CHAR, bg=' '):
     term = Terminal()
     
     with term.fullscreen(), term.hidden_cursor(), term.cbreak():
         try:
             while True:
                 dt = datetime.now()
-                print_datetime(term, dt, fg, bg)
+                print_datetime(term, dt, twelve_hour_format, fg, bg)
                 timeout = 1-(dt.microsecond/1000000)
                 reason  = wait_key_press_or_resize(term, timeout)
                 if (reason == 'key_press'): break
@@ -93,12 +93,13 @@ def print_colon(term, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
             else: s = bg*w
             print(s, end='', flush=True)
 
-def print_datetime(term, dt, fg=FULL_BLOCK_CHAR, bg=' '):
+def print_datetime(term, dt,
+        twelve_hour_format=False, fg=FULL_BLOCK_CHAR, bg=' '):
     print(term.clear)
     with term.location(0, term.height-1):
         print('Press any key to quit')
     
-    hour   = '%.2d' %(dt.hour % 12)
+    hour   = '%.2d' %((dt.hour % 12) if twelve_hour_format else dt.hour)
     minute = '%.2d' %dt.minute
     second = '%.2d' %dt.second
     
@@ -118,7 +119,7 @@ def print_datetime(term, dt, fg=FULL_BLOCK_CHAR, bg=' '):
     sep_width_ratio    = 0.3    # WRT number width; can be changed.
     h  = (term.width - 2*border_width_ratio - 7*sep_width_ratio - 6)
     h /= (2*border_width_ratio + 7*sep_width_ratio + 6.8)
-    h  = floor(h)
+    h  = min(term.height-6, floor(h))
     
     # Determine widths
     number_width = h+1
