@@ -70,7 +70,9 @@ def cliclock(fg=FULL_BLOCK_CHAR, bg=' '):
             while True:
                 dt = datetime.now()
                 print_datetime(term, dt, fg, bg)
-                wait_time_or_resize(term, 1-(dt.microsecond/1000000))
+                timeout = 1-(dt.microsecond/1000000)
+                reason  = wait_key_press_or_resize(term, timeout)
+                if (reason == 'key_press'): break
         except KeyboardInterrupt:
             pass
 
@@ -94,7 +96,7 @@ def print_colon(term, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
 def print_datetime(term, dt, fg=FULL_BLOCK_CHAR, bg=' '):
     print(term.clear)
     with term.location(0, term.height-1):
-        print('Press Ctrl-C to quit')
+        print('Press any key to quit')
     
     hour   = '%.2d' %(dt.hour % 12)
     minute = '%.2d' %dt.minute
@@ -213,19 +215,27 @@ def print_number(term, number, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
             
             print(s, end='', flush=True)
 
-def wait_time_or_resize(term, t, check_interval=0.2):
+def wait_key_press_or_resize(term, timeout, check_interval=0.2):
+    '''Waits until a key is pressed, the terminal is resized, or timeout.
+    Returns the reason for returning: "key_press", "resize", or "timeout".
+    '''
     t0 = time.time()
     w, h = term.width, term.height
-    elapsed_time   = time.time()-t0
-    remaining_time = t-elapsed_time
-    while (elapsed_time < t and w == term.width and h == term.height):
-        if (remaining_time > check_interval):
-            time.sleep(check_interval)
-            elapsed_time   = time.time()-t0
-            remaining_time = t-elapsed_time
-        else:
-            time.sleep(remaining_time)
-            return
+    with term.cbreak():
+        while True:
+            # Check for timeout
+            remaining_time = timeout-(time.time()-t0)
+            if (remaining_time < check_interval):
+                time.sleep(remaining_time)
+                return "timeout"
+            
+            # Check for terminal resize
+            if (term.width != w or term.height != h):
+                return "resize"
+            
+            # Check for key press
+            if term.inkey(timeout=check_interval):
+                return "key_press"
 
 def main():
     return cliclock()
