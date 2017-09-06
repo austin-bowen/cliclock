@@ -22,15 +22,11 @@
 
 '''cliclock.py - A clock for the command line.'''
 
-# TODO: Easter eggs:
-# - Error 404: Time not found
-# - 420 Blaze it!
-# - 3:145926535...
-
 __filename__ = 'cliclock.py'
 __version__  = '0.1'
 __author__   = 'Austin Bowen <austin.bowen.314@gmail.com>'
 
+import random; random.seed(); from random import random
 import time
 
 from blessed  import Terminal
@@ -62,19 +58,75 @@ NUMBER_SEGMENTS = {
     9: {0, 1, 2, 3, 5},
 }
 
-def cliclock(twelve_hour_format=False, fg=FULL_BLOCK_CHAR, bg=' '):
+PI = '3.1415926535897932384626433832795028841971693993751058209749'
+
+def cliclock(twelve_hour_format=False, fg=FULL_BLOCK_CHAR, bg=' ',
+        easter_eggs=True):
     term = Terminal()
     
     with term.fullscreen(), term.hidden_cursor(), term.cbreak():
+        print(term.clear, end='')
         try:
             while True:
                 dt = datetime.now()
-                print_datetime(term, dt, twelve_hour_format, fg, bg)
+                
+                # Easter egg: Pi time!
+                if easter_eggs and is_pi_time(dt, twelve_hour_format):
+                    # Print one digit of pi across the screen for a minute
+                    print(term.clear, end='')
+                    x = max(0, floor((term.width-1-60)/2))
+                    y = floor((term.height-1)/2)
+                    with term.location(x, y):
+                        print(PI[:dt.second+1], end='')
+                
+                # Easter egg: ERROR 404: TIME NOT FOUND
+                elif easter_eggs and is_404(dt, twelve_hour_format):
+                    # Print message down the screen
+                    print(term.clear, end='')
+                    message = 'ERROR 404: TIME NOT FOUND'
+                    x = floor((term.width-1-len(message))/2)
+                    y = floor(dt.second*(term.height-1)/60)
+                    with term.location(x, y):
+                        print(message, end='')
+                
+                # Easter egg: 420 blaze it!
+                elif easter_eggs and is_420(dt, twelve_hour_format):
+                    # Print message randomly on the screen
+                    if (dt.second == 0): print(term.clear, end='')
+                    message = '  Blaze it!  '
+                    x = floor(random()*(term.width-1-len(message)))
+                    y = floor(random()*(term.height-2))
+                    with term.location(x, y):
+                        print(message, end='')
+                
+                # No easter egg?  Just print the time.
+                else:
+                    print(term.clear, end='')
+                    print_datetime(term, dt, twelve_hour_format, fg, bg)
+                
+                with term.location(0, term.height-1):
+                    print('Press any key to quit', end='')
+                
                 timeout = 1-(dt.microsecond/1000000)
                 reason  = wait_key_press_or_resize(term, timeout)
                 if (reason == 'key_press'): break
         except KeyboardInterrupt:
             pass
+
+def is_420(dt, twelve_hour_format):
+    return time_matches_hour_minute(dt, twelve_hour_format, 4, 20)
+
+def is_404(dt, twelve_hour_format):
+    return time_matches_hour_minute(dt, twelve_hour_format, 4,  4)
+
+def is_pi_time(dt, twelve_hour_format):
+    return time_matches_hour_minute(dt, twelve_hour_format, 3, 14)
+
+def time_matches_hour_minute(dt, twelve_hour_format, hour, minute):
+    if twelve_hour_format:
+        return (dt.hour%12 == hour and dt.minute == minute)
+    else:
+        return (dt.hour == hour and dt.minute == minute)
 
 def print_colon(term, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
     x, y = origin
@@ -91,14 +143,10 @@ def print_colon(term, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
             if   (line >= top_dot_top and line < top_dot_bot): s = fg*w
             elif (line >= bot_dot_top and line < bot_dot_bot): s = fg*w
             else: s = bg*w
-            print(s, end='', flush=True)
+            print(s, end='')
 
 def print_datetime(term, dt,
         twelve_hour_format=False, fg=FULL_BLOCK_CHAR, bg=' '):
-    print(term.clear)
-    with term.location(0, term.height-1):
-        print('Press any key to quit')
-    
     hour   = '%.2d' %((dt.hour % 12) if twelve_hour_format else dt.hour)
     minute = '%.2d' %dt.minute
     second = '%.2d' %dt.second
@@ -167,7 +215,7 @@ def print_datetime(term, dt,
     x = round((term.width-1-len(d))/2)
     y = y + h + 1
     with term.location(x, y):
-        print(term.bold + d)
+        print(term.bold + d, end='')
 
 def print_number(term, number, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
     number = int(number)
@@ -214,7 +262,7 @@ def print_number(term, number, origin, size, fg=FULL_BLOCK_CHAR, bg=' '):
                 s += (fg if 6 in segments else bg)*(w-4)
                 s += (fg if (5 in segments or 6 in segments) else bg)*2
             
-            print(s, end='', flush=True)
+            print(s, end='')
 
 def wait_key_press_or_resize(term, timeout, check_interval=0.2):
     '''Waits until a key is pressed, the terminal is resized, or timeout.
