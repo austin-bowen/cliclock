@@ -4,7 +4,7 @@ chardet==3.0.4
 idna==2.6
 pkg-resources==0.0.0
 pkginfo==1.4.1
-requests==2.18.4
+requests==2.20.0
 requests-toolbelt==0.8.0
 six==1.10.0
 tqdm==4.15.0
