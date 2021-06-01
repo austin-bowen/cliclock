@@ -5,5 +5,6 @@ cliclock.egg-info/
 include/
 lib/
 pip-selfcheck.json
+pyvenv.cfg
 share/
 dist/
